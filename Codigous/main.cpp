@@ -1,14 +1,7 @@
 #include <iostream>
-#include <fstream>
-#include <sstream>
 #include <string>
-#include <vector>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <cstring>
-#include <ctime>
-#include <csignal>
-#include <cerrno>
+#include <cstdlib>
+
 using namespace std;
 
 //Joder, por qué tengo que hacer esto? si el codigo con las funciones ahí mismo se veian de pana
@@ -22,7 +15,7 @@ int main(int cantidadPergaminos, char *pergaminos[]) {
 
     if(cantidadPergaminos != 3 && cantidadPergaminos != 4) {
 
-        cout << "Ritual Fallido! (Pusiste " << cantidadPergaminos << " )" << endl;
+        cout << "Ritual Fallido! Faltan Datos UwU!" << endl;
 
         return EXIT_FAILURE;
     }
@@ -35,27 +28,27 @@ int main(int cantidadPergaminos, char *pergaminos[]) {
         limiteDeDominios = stoi(pergaminos[2]);
 
     } catch (const exception&) {
-        cout << "Ritual Fallido! Asegurate de que N y M sean numeros enteros." << endl;
+        cout << "Ritual Fallido! Asegurate de que N y M sean numeros enteros OwO." << endl;
         return EXIT_FAILURE;
     }
 
-    if(jugadoresInvocados < 1) {
-        cout << "Ritual Fallido! No puede haber torneo sin jugadores." << endl;
+    if(JugadoresInvocados < 1) {
+        cout << "Ritual Fallido! No puede haber torneo sin jugadores ewe." << endl;
         return EXIT_FAILURE;
     }
 
     if(limiteDeDominios < 1) {
-        cout << "Ritual Fallido! No puede haber torneo sin mesas." << endl;
+        cout << "Ritual Fallido! No puede haber torneo sin mesas xD." << endl;
         return EXIT_FAILURE;
     }
 
     string ReglasDelJuego;
 
     if(cantidadPergaminos == 4) {
-        ReglasdelJuego = pergaminos[3];
+        ReglasDelJuego = pergaminos[3];
     }
     cout<< "==============================" << endl << "     TORNEO DE KOMIKAN WAMOO    " << endl << "==============================" << endl;
-    cout<< "Ritual exitoso! Se invocaran " << jugadoresInvocados << " jugadores y se jugaran en " << limiteDeDominios << " dominios." << endl;
+    cout<< "Ritual exitoso! Se invocaran " << JugadoresInvocados << " jugadores y se jugaran en " << limiteDeDominios << " dominios." << endl;
 
     if(!ReglasDelJuego.empty()) {
         cout << "Se usara el pergamino de reglas: " << ReglasDelJuego << endl;
@@ -63,7 +56,7 @@ int main(int cantidadPergaminos, char *pergaminos[]) {
         cout << "Se usaran las reglas por defecto." << endl;
     }
 
-    Torneo torneo(jugadoresInvocados, limiteDeDominios, ReglasDelJuego);
+    Torneo torneo(JugadoresInvocados, limiteDeDominios, ReglasDelJuego);
 
     torneo.iniciarRitual();
 
