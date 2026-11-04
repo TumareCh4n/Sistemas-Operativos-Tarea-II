@@ -1,4 +1,3 @@
-
 #include "mapa.h"
 #include <iostream>
 #include <iomanip>

@@ -1,4 +1,3 @@
-
 #include "mesa.h"
 #include <iostream>
 #include <cstdlib>
@@ -147,11 +146,10 @@ void Mesa::arbitrarPartida(){
     }
 
     bool falloDeInvocacion = creados != 13 && !zaWarudo->load();
-    bool tiempoAgotado = false;
     bool abandono = false;
     Ganador ganadorPorAbandono = Ganador::NINGUNO;
 
-    //Limite de cinco segundos SOLO para probar. Despues definiremos cierre sin ganador.
+    //El cronometro solo sirve para el abandono simulado. Sin limite de partida.
     auto inicio = chrono::steady_clock::now();
 
     if(!falloDeInvocacion && creados == 13){
@@ -189,10 +187,6 @@ void Mesa::arbitrarPartida(){
                 break;
             }
 
-            if(transcurrido >= 10000){
-                tiempoAgotado = true;
-                break;
-            }
         }
         detener.store(true);
         pthread_cond_broadcast(&avisoDelJuez);
@@ -211,7 +205,7 @@ void Mesa::arbitrarPartida(){
     mapa.revelarNen();
 
     if(zaWarudo->load()){
-        cout << "ZA WAAARUDOOOoo! Mesa " << idMesa << " cerrada por SIGINT." << endl;
+        cout << "[ZA WARUDO] Mesa " << idMesa << " cerrada por SIGINT." << endl;
     }
     else if(abandono){
         cout << "[JUEZ " << idMesa << "] Abandono del jugador " << configuracion.abandonoSimulado
@@ -229,10 +223,6 @@ void Mesa::arbitrarPartida(){
     else if(mapa.obtenerGanador() == Ganador::PERROS){
         cout << "[JUEZ] Victoria de los Perros!" << endl;
         resultadoValido = true;
-    }
-    else if(tiempoAgotado){
-        cout << "[JUEZ] Tiempo de prueba agotado, sin ganador." << endl;
-        resultadoValido = true; //Partida cerrada para pruebas, no victoria reglamentaria
     }
 
     cout << "[JUEZ " << idMesa << "] Mesa disponible otra vez." << endl;

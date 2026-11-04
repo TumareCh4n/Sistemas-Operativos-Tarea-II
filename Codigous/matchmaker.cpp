@@ -1,4 +1,3 @@
-
 #include "matchmaker.h"
 #include "mesa.h"
 #include <iostream>
@@ -43,7 +42,7 @@ void* Matchmaker::vigilarElTiempo(void* contexto){
         servidor->inscripcionesCerradas = true;
         pthread_cond_broadcast(&servidor->campanaDelMatchmaker);
         pthread_mutex_unlock(&servidor->cerrojoDelDestino);
-        cout << "\n[ZA WAAARUDO! Ctrl+C recibido! No entraran mas jugadores." << endl;
+        cout << "\n[ZA WARUDO] Ctrl+C recibido! No entraran mas jugadores." << endl;
     }
 
     return nullptr;
@@ -195,7 +194,7 @@ void Matchmaker::iniciarEmparejamiento(){
     cout << "[MATCHMAKER] Maximo simultaneo observado: " << maximoObservado
          << " de " << limiteDeDominios << " mesas permitidas." << endl;
     if(zaWarudo.load()){
-        cout << "[ZAA WARUDOOO!] Se descartaron " << filaDeEspera.size()
+        cout << "[ZA WARUDO] Se descartaron " << filaDeEspera.size()
              << " jugadores que todavia esperaban. Limpieza completa." << endl;
     }
     else if(!filaDeEspera.empty()){

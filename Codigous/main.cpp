@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <string>
 #include <cstdlib>
@@ -59,11 +58,10 @@ int main(int cantidadPergaminos, char *pergaminos[]) {
 
     Torneo torneo(JugadoresInvocados, limiteDeDominios, ReglasDelJuego);
 
-
     try {
         torneo.iniciarRitual();
     } catch(const exception& error){
-        cerr << "Ritual Fallio! " << error.what() << endl;
+        cerr << "Ritual Fallido! " << error.what() << endl;
         return EXIT_FAILURE;
     }
 

@@ -1,4 +1,3 @@
-
 #include "configuracion.h"
 #include "mapa.h"
 #include <fstream>
@@ -75,7 +74,6 @@ Configuracion descifrarPergamino(const string& archivo){
 
         if(llave == "MIN_DELAY") reglas.minDelay = descifrarNumero(valor,numeroLinea);
         else if(llave == "MAX_DELAY") reglas.maxDelay = descifrarNumero(valor,numeroLinea);
-    
         else if(llave == "SEED"){
             try {
                 if(valor[0] == '-') throw invalid_argument("negativo");
@@ -94,7 +92,6 @@ Configuracion descifrarPergamino(const string& archivo){
             reglas.abandonoSimulado = valor;
         }
         else if(llave == "ABANDONO_MS") reglas.abandonoMs = descifrarNumero(valor,numeroLinea);
-
         else if(llave == "PUMA") reglas.posicionPuma = descifrarPosicion(valor,numeroLinea);
         else if(llave == "PERROS"){
             if(valor.back() == ',') throw runtime_error("Pergamino corrupto en linea " + to_string(numeroLinea) + ": PERROS tiene una coma extra.");
@@ -115,8 +112,8 @@ Configuracion descifrarPergamino(const string& archivo){
         throw runtime_error("MIN_DELAY y MAX_DELAY deben ser positivos y MIN_DELAY <= MAX_DELAY.");
     }
 
-    if(reglas.abandonoMs < 0 || reglas.abandonoMs >= 5000){
-        throw runtime_error("ABANDONO_MS debe estar entre 0 y 9999 para nuestras pruebas jeje.");
+    if(reglas.abandonoMs < 0){
+        throw runtime_error("ABANDONO_MS no puede ser negativo, po.");
     }
 
     set<int> ocupadas;
