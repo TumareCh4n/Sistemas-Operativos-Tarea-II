@@ -4,6 +4,7 @@
 #include "mapa.h"
 #include "configuracion.h"
 #include <pthread.h>
+#include <atomic>
 
 class Mesa {
 
@@ -16,6 +17,7 @@ class Mesa {
 
     int idMesa;
     Configuracion configuracion;
+    std::atomic<bool>* zaWarudo; //El aviso de interrupcion del torneo entero
     Mapa mapa;
     pthread_t hilos[13];
     pthread_t hiloJuez;
@@ -23,8 +25,9 @@ class Mesa {
     pthread_mutex_t expansionDeDominio;
     pthread_cond_t avisoDelJuez;
 
-    bool detener = false;
+    std::atomic<bool> detener{false};
     int movimientosEjecutados = 0;
+    bool resultadoValido = false;
 
     static void* manifestarFicha(void* contexto);
     static void* invocarJuez(void* contexto);
@@ -32,13 +35,13 @@ class Mesa {
 
     public:
 
-    Mesa(int idMesa, const Configuracion& configuracion);
+    Mesa(int idMesa, const Configuracion& configuracion, std::atomic<bool>& zaWarudo);
     ~Mesa();
 
     Mesa(const Mesa&) = delete;
     Mesa& operator=(const Mesa&) = delete;
 
-    void iniciarExpansion();
+    bool iniciarExpansion();
 };
 
 #endif

@@ -5,13 +5,14 @@
 #include <ctime>
 #include <cerrno>
 #include <stdexcept>
-#include <unistd.h>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 
 using namespace std;
 
-Mesa::Mesa(int idMesa, const Configuracion& configuracion) : idMesa(idMesa), configuracion(configuracion) {
+Mesa::Mesa(int idMesa, const Configuracion& configuracion, atomic<bool>& zaWarudo)
+    : idMesa(idMesa), configuracion(configuracion), zaWarudo(&zaWarudo) {
 
     if(pthread_mutex_init(&expansionDeDominio, nullptr) != 0){
         throw runtime_error("No se pudo iniciar la expansion de dominio.");
@@ -37,14 +38,20 @@ void* Mesa::manifestarFicha(void* contexto){
     unsigned int semilla = mesa->configuracion.semilla
                         ^ static_cast<unsigned int>(ficha * 7919 + mesa->idMesa * 97);
 
-    while(true){
+    while(!mesa->detener.load() && !mesa->zaWarudo->load()){
         unsigned int intervalo = static_cast<unsigned int>(mesa->configuracion.maxDelay - mesa->configuracion.minDelay) + 1U;
         int espera = mesa->configuracion.minDelay + static_cast<int>(rand_r(&semilla) % intervalo);
-        this_thread::sleep_for(chrono::milliseconds(espera));
+
+        //Dormimos por trozos: Ctrl+C puede detenernos sin esperar un delay enorme.
+        while(espera > 0 && !mesa->detener.load() && !mesa->zaWarudo->load()){
+            int trozo = min(espera, 50);
+            this_thread::sleep_for(chrono::milliseconds(trozo));
+            espera -= trozo;
+        }
 
         pthread_mutex_lock(&mesa->expansionDeDominio);
 
-        if(mesa->detener || mesa->mapa.obtenerGanador() != Ganador::NINGUNO){
+        if(mesa->detener.load() || mesa->zaWarudo->load() || mesa->mapa.obtenerGanador() != Ganador::NINGUNO){
             pthread_mutex_unlock(&mesa->expansionDeDominio);
             break;
         }
@@ -72,7 +79,6 @@ void* Mesa::manifestarFicha(void* contexto){
                 if(resultado == ResultadoMovimiento::CAPTURA) cout << " [CAPTURA]";
                 cout << endl;
 
-                //Avisamos al Juez, no hace falta que este preguntando sin parar.
                 pthread_cond_signal(&mesa->avisoDelJuez);
             }
         }
@@ -91,6 +97,8 @@ void* Mesa::invocarJuez(void* contexto){
 }
 
 void Mesa::arbitrarPartida(){
+
+    if(zaWarudo->load()) return;
 
     cout << "\n[JUEZ " << idMesa << "] Preparando campo de batalla..." << endl;
     mapa.despertarNen();
@@ -116,16 +124,18 @@ void Mesa::arbitrarPartida(){
     cout << "[JUEZ " << idMesa << "] Partida inaugurada con 13 fichas." << endl;
     mapa.revelarNen();
 
-    detener = false;
+    detener.store(false);
     movimientosEjecutados = 0;
 
+    if(zaWarudo->load()) return;
     if(mapa.obtenerGanador() != Ganador::NINGUNO){
         cout << "[JUEZ] La partida ya tenia ganador al comenzar." << endl;
+        resultadoValido = true;
         return;
     }
 
     int creados = 0;
-    for(int i = 0; i < 13; ++i){
+    for(int i = 0; i < 13 && !zaWarudo->load(); ++i){
         pergaminos[i] = {this, i + 1};
         int error = pthread_create(&hilos[i], nullptr, Mesa::manifestarFicha, &pergaminos[i]);
 
@@ -136,20 +146,33 @@ void Mesa::arbitrarPartida(){
         ++creados;
     }
 
-    bool falloDeInvocacion = creados != 13;
+    bool falloDeInvocacion = creados != 13 && !zaWarudo->load();
     bool tiempoAgotado = false;
+    bool abandono = false;
+    Ganador ganadorPorAbandono = Ganador::NINGUNO;
 
-    if(!falloDeInvocacion){
-        //Cinco segundos SOLO durante nuestras pruebas, no es una regla del juego.
-        timespec horaLimite;
-        clock_gettime(CLOCK_REALTIME, &horaLimite);
-        horaLimite.tv_sec += 5;
+    //Limite de cinco segundos SOLO para probar. Despues definiremos cierre sin ganador.
+    auto inicio = chrono::steady_clock::now();
 
+    if(!falloDeInvocacion && creados == 13){
         pthread_mutex_lock(&expansionDeDominio);
         int ultimoResumen = 0;
 
-        while(!detener && mapa.obtenerGanador() == Ganador::NINGUNO){
-            int respuesta = pthread_cond_timedwait(&avisoDelJuez, &expansionDeDominio, &horaLimite);
+        while(!detener.load() && !zaWarudo->load() && mapa.obtenerGanador() == Ganador::NINGUNO){
+            timespec proximoAviso;
+            clock_gettime(CLOCK_REALTIME, &proximoAviso);
+            proximoAviso.tv_nsec += 100000000L;
+            if(proximoAviso.tv_nsec >= 1000000000L){
+                ++proximoAviso.tv_sec;
+                proximoAviso.tv_nsec -= 1000000000L;
+            }
+
+            int respuesta = pthread_cond_timedwait(&avisoDelJuez, &expansionDeDominio, &proximoAviso);
+            if(respuesta != 0 && respuesta != ETIMEDOUT){
+                cout << "[JUEZ] Fallo esperando el aviso (" << respuesta << ")" << endl;
+                falloDeInvocacion = true;
+                break;
+            }
 
             if(movimientosEjecutados - ultimoResumen >= 15){
                 ultimoResumen = movimientosEjecutados;
@@ -157,26 +180,26 @@ void Mesa::arbitrarPartida(){
                 mapa.revelarNen();
             }
 
-            if(respuesta == ETIMEDOUT){
+            auto transcurrido = chrono::duration_cast<chrono::milliseconds>(chrono::steady_clock::now() - inicio).count();
+
+            //Simulacion controlada del abandono de un jugador (no una desconexion de red real).
+            if(configuracion.abandonoSimulado != "NINGUNO" && transcurrido >= configuracion.abandonoMs){
+                abandono = true;
+                ganadorPorAbandono = (configuracion.abandonoSimulado == "PUMA") ? Ganador::PERROS : Ganador::PUMA;
+                break;
+            }
+
+            if(transcurrido >= 10000){
                 tiempoAgotado = true;
                 break;
             }
-            if(respuesta != 0){
-                cout << "[JUEZ] Fallo esperando el aviso (" << respuesta << ")" << endl;
-                falloDeInvocacion = true;
-                break;
-            }
         }
-
-        detener = true;
+        detener.store(true);
         pthread_cond_broadcast(&avisoDelJuez);
         pthread_mutex_unlock(&expansionDeDominio);
     }
     else {
-        pthread_mutex_lock(&expansionDeDominio);
-        detener = true;
-        pthread_cond_broadcast(&avisoDelJuez);
-        pthread_mutex_unlock(&expansionDeDominio);
+        detener.store(true);
     }
 
     //Los 13 threads deben salir ANTES de liberar el tablero.
@@ -187,31 +210,46 @@ void Mesa::arbitrarPartida(){
     cout << "\n[JUEZ " << idMesa << "] Reuni todos los hilos. Movimientos: " << movimientosEjecutados << endl;
     mapa.revelarNen();
 
-    if(falloDeInvocacion){
-        cout << "[JUEZ] Partida abortada por fallo al iniciar o supervisar los hilos." << endl;
+    if(zaWarudo->load()){
+        cout << "ZA WAAARUDOOOoo! Mesa " << idMesa << " cerrada por SIGINT." << endl;
+    }
+    else if(abandono){
+        cout << "[JUEZ " << idMesa << "] Abandono del jugador " << configuracion.abandonoSimulado
+             << ". Gana " << (ganadorPorAbandono == Ganador::PUMA ? "PUMA" : "PERROS") << " por abandono." << endl;
+        resultadoValido = true;
+    }
+    else if(falloDeInvocacion){
+        //El intento de crear un hilo fallido se interpreta como fallo de su lado.
+        cout << "[JUEZ] Fallo interno: gana " << (creados == 0 ? "PERROS" : "PUMA") << " por abandono tecnico." << endl;
     }
     else if(mapa.obtenerGanador() == Ganador::PUMA){
         cout << "[JUEZ] Victoria del Puma!" << endl;
+        resultadoValido = true;
     }
     else if(mapa.obtenerGanador() == Ganador::PERROS){
         cout << "[JUEZ] Victoria de los Perros!" << endl;
+        resultadoValido = true;
     }
     else if(tiempoAgotado){
         cout << "[JUEZ] Tiempo de prueba agotado, sin ganador." << endl;
+        resultadoValido = true; //Partida cerrada para pruebas, no victoria reglamentaria
     }
 
     cout << "[JUEZ " << idMesa << "] Mesa disponible otra vez." << endl;
 }
 
-void Mesa::iniciarExpansion(){
+bool Mesa::iniciarExpansion(){
 
     cout << "\n[MESA " << idMesa << "] EXPANSION DE DOMINIO!" << endl;
+
+    if(zaWarudo->load()) return false;
 
     int error = pthread_create(&hiloJuez, nullptr, Mesa::invocarJuez, this);
     if(error != 0){
         cout << "[MESA] No se pudo crear el hilo Juez (" << error << ")" << endl;
-        return;
+        return false;
     }
 
     pthread_join(hiloJuez, nullptr);
+    return resultadoValido;
 }

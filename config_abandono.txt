@@ -1,0 +1,11 @@
+# Escenario artificial para comprobar victoria por abandono
+
+MIN_DELAY=50
+MAX_DELAY=300
+SEED=12345
+
+PUMA=REY
+PERROS=13,14,15,16,17,18,19,20,21,22,23,24
+
+ABANDONO=PUMA
+ABANDONO_MS=700

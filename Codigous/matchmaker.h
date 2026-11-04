@@ -1,9 +1,9 @@
-
 #ifndef MATCHMAKER_H
 #define MATCHMAKER_H
 
 #include <pthread.h>
 #include <deque>
+#include <atomic>
 #include "configuracion.h"
 
 class Matchmaker {
@@ -26,13 +26,17 @@ class Matchmaker {
     pthread_mutex_t cerrojoDelDestino;
     pthread_cond_t campanaDelMatchmaker;
     bool inscripcionesCerradas = false;
+    std::atomic<bool> zaWarudo{false};
+    pthread_t vigilanteSIGINT;
 
     int mesasActivas = 0;
     int maximoObservado = 0;
     int partidasCompletadas = 0;
+    int partidasAbortadas = 0;
 
     static void* invocarJugador(void* contexto);
     static void* abrirDominio(void* contexto);
+    static void* vigilarElTiempo(void* contexto);
     void recibirJugador(int jugador);
     void atenderMesa(int numeroMesa);
 
