@@ -116,7 +116,7 @@ Configuracion descifrarPergamino(const string& archivo){
     }
 
     if(reglas.abandonoMs < 0 || reglas.abandonoMs >= 5000){
-        throw runtime_error("ABANDONO_MS debe estar entre 0 y 4999 para nuestras pruebas.");
+        throw runtime_error("ABANDONO_MS debe estar entre 0 y 9999 para nuestras pruebas jeje.");
     }
 
     set<int> ocupadas;
