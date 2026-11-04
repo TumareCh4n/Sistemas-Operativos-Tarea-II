@@ -1,4 +1,6 @@
+
 #include "torneo.h"
+#include "matchmaker.h"
 #include <iostream> 
 using namespace std;
 
@@ -20,4 +22,7 @@ void Torneo::iniciarRitual() {
     }
 
     cout << "Tamos Listos... Marichiwew!" << endl;
+
+    Matchmaker servidor(jugadoresInvocados, limiteDeDominios);
+    servidor.iniciarEmparejamiento();
 }
