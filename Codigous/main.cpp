@@ -59,7 +59,13 @@ int main(int cantidadPergaminos, char *pergaminos[]) {
 
     Torneo torneo(JugadoresInvocados, limiteDeDominios, ReglasDelJuego);
 
-    torneo.iniciarRitual();
+
+    try {
+        torneo.iniciarRitual();
+    } catch(const exception& error){
+        cerr << "Ritual Fallio! " << error.what() << endl;
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }

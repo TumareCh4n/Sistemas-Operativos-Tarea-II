@@ -1,0 +1,11 @@
+# Pergamino de reglas del Komikan WAMOO
+
+MIN_DELAY=50
+MAX_DELAY=300
+SEED=12345
+
+# Posiciones especiales: REY, TopL, TopR
+# Posiciones normales: 0 hasta 24
+
+PUMA=REY
+PERROS=13,14,15,16,17,18,19,20,21,22,23,24

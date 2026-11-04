@@ -8,9 +8,10 @@
 
 using namespace std;
 
-Matchmaker::Matchmaker(int jugadoresInvocados, int limiteDeDominios) {
+Matchmaker::Matchmaker(int jugadoresInvocados, int limiteDeDominios, const Configuracion& configuracion) {
     this->jugadoresInvocados = jugadoresInvocados;
     this->limiteDeDominios = limiteDeDominios;
+    this->configuracion = configuracion;
 
     if(pthread_mutex_init(&cerrojoDelDestino, nullptr) != 0){
         throw runtime_error("No se pudo proteger la fila del destino.");
@@ -72,7 +73,7 @@ void Matchmaker::atenderMesa(int numeroMesa){
 
         //Cada mesa construye un mapa nuevo y espera a su propio Juez.
         try {
-            Mesa mesa(numeroMesa);
+            Mesa mesa(numeroMesa, configuracion);
             mesa.iniciarExpansion();
         }
         catch(const exception& error){

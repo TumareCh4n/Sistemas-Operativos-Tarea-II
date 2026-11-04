@@ -4,6 +4,7 @@
 
 #include <pthread.h>
 #include <deque>
+#include "configuracion.h"
 
 class Matchmaker {
     private:
@@ -20,6 +21,7 @@ class Matchmaker {
 
     int jugadoresInvocados;
     int limiteDeDominios;
+    Configuracion configuracion;
     std::deque<int> filaDeEspera;
     pthread_mutex_t cerrojoDelDestino;
     pthread_cond_t campanaDelMatchmaker;
@@ -36,7 +38,7 @@ class Matchmaker {
 
     public:
 
-    Matchmaker(int jugadoresInvocados, int limiteDeDominios);
+    Matchmaker(int jugadoresInvocados, int limiteDeDominios, const Configuracion& configuracion);
     ~Matchmaker();
     Matchmaker(const Matchmaker&) = delete;
     Matchmaker& operator=(const Matchmaker&) = delete;

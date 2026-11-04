@@ -2,6 +2,7 @@
 #define MESA_H
 
 #include "mapa.h"
+#include "configuracion.h"
 #include <pthread.h>
 
 class Mesa {
@@ -14,6 +15,7 @@ class Mesa {
     };
 
     int idMesa;
+    Configuracion configuracion;
     Mapa mapa;
     pthread_t hilos[13];
     pthread_t hiloJuez;
@@ -30,7 +32,7 @@ class Mesa {
 
     public:
 
-    Mesa(int idMesa);
+    Mesa(int idMesa, const Configuracion& configuracion);
     ~Mesa();
 
     Mesa(const Mesa&) = delete;

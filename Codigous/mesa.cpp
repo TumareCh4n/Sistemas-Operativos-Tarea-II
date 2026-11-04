@@ -6,11 +6,12 @@
 #include <cerrno>
 #include <stdexcept>
 #include <unistd.h>
-#include <stdlib.h>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 
-Mesa::Mesa(int idMesa) : idMesa(idMesa) {
+Mesa::Mesa(int idMesa, const Configuracion& configuracion) : idMesa(idMesa), configuracion(configuracion) {
 
     if(pthread_mutex_init(&expansionDeDominio, nullptr) != 0){
         throw runtime_error("No se pudo iniciar la expansion de dominio.");
@@ -33,12 +34,13 @@ void* Mesa::manifestarFicha(void* contexto){
     int ficha = pergamino->ficha;
 
     //Cada bicho tira su propio dado. Nada de compartir rand().
-    unsigned int semilla = static_cast<unsigned int>(time(nullptr))
-                         ^ static_cast<unsigned int>(ficha * 7919 + mesa->idMesa * 97);
+    unsigned int semilla = mesa->configuracion.semilla
+                        ^ static_cast<unsigned int>(ficha * 7919 + mesa->idMesa * 97);
 
     while(true){
-        int espera = 50 + static_cast<int>(rand_r(&semilla) % 251);
-        usleep(espera * 1000);
+        unsigned int intervalo = static_cast<unsigned int>(mesa->configuracion.maxDelay - mesa->configuracion.minDelay) + 1U;
+        int espera = mesa->configuracion.minDelay + static_cast<int>(rand_r(&semilla) % intervalo);
+        this_thread::sleep_for(chrono::milliseconds(espera));
 
         pthread_mutex_lock(&mesa->expansionDeDominio);
 
@@ -93,14 +95,14 @@ void Mesa::arbitrarPartida(){
     cout << "\n[JUEZ " << idMesa << "] Preparando campo de batalla..." << endl;
     mapa.despertarNen();
 
-    if(!mapa.colocarFicha(1, REY)){
+    if(!mapa.colocarFicha(1, configuracion.posicionPuma)){
         cout << "[JUEZ] No pude colocar al Puma, tremendo ritual fallido." << endl;
         return;
     }
 
-    //Formacion provisional hasta implementar el config.txt
+    //La formacion la dicta el pergamino, nada de perros naciendo donde quieran
     for(int perro = 1; perro <= 12; ++perro){
-        if(!mapa.colocarFicha(perro + 1, 12 + perro)){
+        if(!mapa.colocarFicha(perro + 1, configuracion.posicionesPerros[perro - 1])){
             cout << "[JUEZ] Fallo al colocar al Perro " << perro << endl;
             return;
         }

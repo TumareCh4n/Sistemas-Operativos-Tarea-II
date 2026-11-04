@@ -1,6 +1,6 @@
-
 #include "torneo.h"
 #include "matchmaker.h"
+#include "configuracion.h"
 #include <iostream> 
 using namespace std;
 
@@ -23,6 +23,10 @@ void Torneo::iniciarRitual() {
 
     cout << "Tamos Listos... Marichiwew!" << endl;
 
-    Matchmaker servidor(jugadoresInvocados, limiteDeDominios);
+    Configuracion reglas = descifrarPergamino(ReglasDelJuego);
+    cout << "[PERGAMINO] Reglas descifradas: delay " << reglas.minDelay << "-" << reglas.maxDelay
+         << " ms, semilla " << reglas.semilla << ", Puma en " << reglas.posicionPuma << "." << endl;
+
+    Matchmaker servidor(jugadoresInvocados, limiteDeDominios, reglas);
     servidor.iniciarEmparejamiento();
 }
